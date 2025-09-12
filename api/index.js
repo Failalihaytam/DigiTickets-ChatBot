@@ -88,9 +88,11 @@ Contexte pertinent:
 ${contextBlocks}
 
 Consignes:
-- Réponds clairement en t'appuyant sur le contexte.
+- Réponds directement et clairement à la question.
 - Si une étape est nécessaire dans l'app, explique-la pas à pas.
-- Si l'info n'est pas dans le contexte, dis-le.
+- Ne mentionne pas les sources ou la documentation.
+- Sois concis et utile.
+- Si l'info n'est pas dans le contexte, dis-le simplement.
 `;
 
   try {
@@ -100,10 +102,7 @@ Consignes:
     
     return {
       answer: text,
-      sources: hits.map(hit => ({
-        score: hit.score,
-        preview: hit.text.substring(0, 280) + '…'
-      }))
+      sources: []
     };
   } catch (error) {
     console.error('Generation error:', error);
@@ -174,15 +173,6 @@ async function ask(){
 
   typing.remove();
   addBubble(res.answer || '—', 'bot');
-
-  if(res.sources && res.sources.length){
-    const s = document.createElement('div');
-    s.className = 'row bot';
-    const b = document.createElement('div');
-    b.className = 'bubble src';
-    b.textContent = 'Contexte: ' + res.sources.map(function(x,i){return '[' + (i+1) + '] ' + x.preview}).join(' | ');
-    s.appendChild(b); chat.appendChild(s); chat.scrollTop = chat.scrollHeight;
-  }
 }
 
 send.onclick = ask;
@@ -199,13 +189,29 @@ app.post('/chat', async (req, res) => {
     return res.json({ answer: 'Écris-moi une question 🙂', sources: [] });
   }
 
-  // Lightweight acknowledgments
-  const qlower = question.toLowerCase();
+  // Simple greetings and acknowledgments
+  const qlower = question.toLowerCase().trim();
+  
+  // Greeting patterns
+  const greetingPatterns = [
+    'salut', 'bonjour', 'hello', 'coucou', 'hey', 'hi'
+  ];
+  
+  // Acknowledgment patterns
   const ackPatterns = [
     'ok', 'okay', 'd\'accord', 'dac', 'dacc', 'c\'est bon', 'cest bon',
     'merci', 'parfait', 'super', 'top', 'ça marche', 'ca marche'
   ];
   
+  // Handle simple greetings
+  if (greetingPatterns.some(p => qlower === p || qlower.startsWith(p + ' ') || qlower.endsWith(' ' + p))) {
+    return res.json({ 
+      answer: 'Salut ! Je suis là pour t\'aider avec DigiTickets. Que veux-tu faire ?', 
+      sources: [] 
+    });
+  }
+  
+  // Handle acknowledgments
   if (ackPatterns.some(p => qlower.includes(p)) && qlower.length <= 40) {
     return res.json({ 
       answer: '👍 C\'est noté. Dites-moi si vous voulez faire une action (créer un ticket, le résoudre, voir vos tickets, etc.).', 
