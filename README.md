@@ -7,7 +7,7 @@ Un chatbot RAG (Retrieval-Augmented Generation) pour aider les utilisateurs avec
 ### Prérequis
 - Node.js (version 14 ou supérieure)
 - npm ou yarn
-- Clé API Google Gemini
+- Clé API OpenRouter
 
 ### 1. Installation des dépendances
 
@@ -20,14 +20,18 @@ npm install
 Créez un fichier `.env` à la racine du projet :
 
 ```bash
-GEMINI_API_KEY=votre_cle_api_google_gemini_ici
+OPENROUTER_API_KEY=votre_cle_api_openrouter_ici
 ```
 
-**Comment obtenir une clé API Google Gemini :**
-1. Allez sur [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Connectez-vous avec votre compte Google
-3. Créez une nouvelle clé API
-4. Copiez la clé dans votre fichier `.env`
+**Comment obtenir une clé API OpenRouter :**
+1. Allez sur [OpenRouter](https://openrouter.ai/)
+2. Créez un compte et connectez-vous
+3. Allez dans votre tableau de bord (Dashboard)
+4. Cliquez sur "Keys" dans le menu
+5. Créez une nouvelle clé API
+6. Copiez la clé dans votre fichier `.env`
+
+**Note :** Ce chatbot utilise OpenRouter avec DeepSeek V3.1 comme modèle principal (gratuit). DeepSeek V3.1 est un modèle de génération de texte performant et économique pour la génération de réponses et text-embedding-3-small pour les embeddings.
 
 ### 3. Préparation de la base de connaissances
 

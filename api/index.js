@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
@@ -11,14 +11,20 @@ app.use(cors());
 app.use(express.json());
 
 // Config
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY env var is required');
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+if (!OPENROUTER_API_KEY) {
+  throw new Error('OPENROUTER_API_KEY env var is required');
 }
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+
+// OpenRouter client configuration
+const openRouterHeaders = {
+  'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+  'Content-Type': 'application/json',
+  'HTTP-Referer': 'http://localhost:3000', // Required for OpenRouter
+  'X-Title': 'DigiTickets ChatBot' // Optional but recommended
+};
 
 const KB_CHUNKS_PATH = path.join(__dirname, '..', 'kb_chunks.json');
 const KB_VECTORS_PATH = path.join(__dirname, '..', 'kb_vectors.json');
@@ -54,10 +60,50 @@ function cosineSimilarity(a, b) {
 
 async function embedText(text) {
   try {
-    const result = await embeddingModel.embedContent(text);
-    return result.embedding.values;
+    // Using OpenAI's embedding model via OpenRouter
+    const response = await axios.post(`${OPENROUTER_BASE_URL}/embeddings`, {
+      model: 'text-embedding-3-small',
+      input: text
+    }, {
+      headers: openRouterHeaders
+    });
+
+    if (response.data && response.data.data && response.data.data[0]) {
+      return response.data.data[0].embedding;
+    }
+    throw new Error('Invalid embedding response');
   } catch (error) {
-    console.error('Embedding error:', error);
+    console.error('Embedding error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+async function generateText(prompt) {
+  try {
+    const response = await axios.post(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      model: 'deepseek/deepseek-chat-v3.1:free',
+      messages: [
+        {
+          role: 'system',
+          content: 'Tu es un assistant utile qui aide avec l\'application DigiTickets. Réponds en français.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
+    }, {
+      headers: openRouterHeaders
+    });
+
+    if (response.data && response.data.choices && response.data.choices[0] && response.data.choices[0].message) {
+      return response.data.choices[0].message.content.trim();
+    }
+    throw new Error('Invalid generation response');
+  } catch (error) {
+    console.error('Generation error:', error.response?.data || error.message);
     throw error;
   }
 }
@@ -96,9 +142,7 @@ Consignes:
 `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const text = await generateText(prompt);
     
     return {
       answer: text,
